@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌟 专业工时记录系统 V4.1 (员工管理)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 颜色与变量定义 --- */
+        :root {
+            --primary-color: #3F51B5; /* 深蓝色/靛蓝色 */
+            --primary-light: #5C6BC0;
+            --secondary-color: #FFC107; /* 强调色/警告色 */
+            --success-color: #4CAF50; /* 绿色 */
+            --danger-color: #F44336; /* 红色用于删除 */
+            --background-start: #E0F7FA; 
+            --background-end: #F0F4C3; 
+            --card-bg: #FFFFFF;
+            --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-card: 0 8px 20px rgba(0, 0, 0, 0.15); 
+        }
+        
+        /* --- 全局样式和背景 --- */
+        body { 
+            font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif; 
+            background: linear-gradient(135deg, var(--background-start) 0%, var(--background-end) 100%);
+            margin: 0; 
+            padding: 40px 20px; 
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* --- 主容器和标题 --- */
+        .container { 
+            max-width: 950px; 
+            margin: 0 auto; 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: var(--shadow-card); 
+            transition: all 0.3s ease;
+        }
+        h2 { 
+            color: var(--primary-color); 
+            font-weight: 700;
+            border-bottom: 4px solid var(--secondary-color); 
+            padding-bottom: 15px; 
+            margin-bottom: 35px; 
+            text-align: center; 
+            letter-spacing: 1px;
+        }
+        h3 {
+            color: var(--primary-light);
+            font-weight: 500;
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+            margin-bottom: 25px;
+        }
+        
+        /* --- 区块样式 --- */
+        .section { 
+            margin-bottom: 40px; 
+            padding: 30px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 12px; 
+            background-color: #f7f9fc; 
+            box-shadow: var(--shadow-subtle);
+            transition: box-shadow 0.3s;
+        }
+        
+        /* --- 按钮样式 --- */
+        .button { 
+            padding: 12px 25px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            color: white; 
+            font-weight: 500;
+            transition: all 0.2s ease-in-out; 
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+        }
+        .button-small {
+            padding: 6px 12px;
+            min-width: unset;
+            font-size: 0.9em;
+            border-radius: 6px;
+        }
+        .button:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .button-primary { background-color: var(--primary-color); }
+        .button-success { background-color: var(--success-color); }
+        .button-danger { background-color: var(--danger-color); }
+        
+        /* --- 输入框样式 --- */
+        .input-group { 
+            margin-bottom: 20px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            align-items: center; 
+            gap: 15px; 
+        }
+        .input-group input[type="text"], 
+        .input-group input[type="date"] { 
+            padding: 10px 12px; 
+            border: 1px solid #bdbdbd; 
+            border-radius: 8px; 
+            flex-grow: 1; 
+            min-width: 150px;
+        }
+        
+        /* --- 表格样式 (通用和员工管理) --- */
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            margin-top: 25px; 
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        /* 管理列表中的操作列 */
+        #worker-management-table td:last-child { 
+            text-align: right; 
+            min-width: 150px;
+        }
+
+        th, td { 
+            padding: 12px 15px; 
+            text-align: left; 
+            border-bottom: 1px solid #eeeeee;
+        }
+        th { 
+            background-color: #f1f2f6; 
+            font-weight: 700;
+            color: #333;
+        }
+        tr:hover td:not(.no-hover) { background-color: #e3f2fd; } 
+
+        .input-hours { 
+            width: 70px; 
+            text-align: center;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        /* --- 消息和状态样式 --- */
+        .message { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-weight: 500; 
+            opacity: 0; 
+            transition: all 0.5s ease-out;
+            transform: translateY(10px);
+        }
+        .message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .message.success { background-color: #e8f5e9; color: var(--success-color); border: 1px solid #c8e6c9; }
+        .message.error { background-color: #ffebee; color: #D32F2F; border: 1px solid #ffcdd2; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 700;
+            background-color: var(--secondary-color);
+            color: #333;
+            margin-left: 10px;
+        }
+
+        /* --- 模态框 (Modal) 核心样式 --- */
+        .modal {
+            display: none; /* 默认隐藏 */
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6); /* 黑色半透明背景 */
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 5% auto; /* 居中显示 */
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%; 
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideIn 0.4s ease-out;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 36px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .close-btn:hover,
+        .close-btn:focus {
+            color: var(--danger-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* 模态框动画 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* --- 加载动画 --- */
+        @keyframes spinner { to { transform: rotate(360deg); } }
+        .spinner {
+            display: inline-block;
+            width: 1.2em;
+            height: 1.2em;
+            border: 0.15em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner 0.75s linear infinite;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⏱️ 专业工时记录与导出系统 V4.1</h2>
+    <p style="text-align: center; color: #757575;">系统使用浏览器本地存储，数据安全且可离线操作。数据不会被误删。</p>
+
+    <div class="section">
+        <h3>1️⃣ 员工信息建档与管理</h3>
+        <span class="status-badge" id="worker-count-badge">0 人已建档</span>
+        <p>在此录入或修改员工档案。修改后请点击下方的**“更新”**按钮。</p>
+        
+        <div id="new-worker-form">
+            <div class="input-group">
+                <label>工号 ID:</label><input type="text" id="input-id" placeholder="必填，用于唯一识别" required>
+                <label>姓名:</label><input type="text" id="input-name" placeholder="必填，员工姓名" required>
+            </div>
+            <div class="input-group">
+                <label>公司:</label><input type="text" id="input-company" placeholder="所属公司/部门">
+                <label>工种:</label><input type="text" id="input-job" placeholder="具体工种/岗位">
+            </div>
+            <button class="button button-primary" id="add-worker-btn" onclick="addWorkerMetadata()">
+                ➕ 添加 / 更新员工信息
+            </button>
+            <button class="button button-primary" style="margin-left: 20px; background-color: #00bcd4;" onclick="openWorkerManagementModal()">
+                ⚙️ 管理员工档案
+            </button>
+            <p id="metadata-message" class="message"></p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>2️⃣ 批量工时录入 (每日工作)</h3>
+        <div class="input-group">
+            <label for="work-date">选择录入日期:</label>
+            <input type="date" id="work-date" value="">
+            <button class="button button-primary" id="load-workers-btn" onclick="loadWorkersForInput()">
+                📋 加载所有已建档员工名单
+            </button>
+        </div>
+        
+        <div id="input-area" style="display: none;">
+            <h4>正在录入日期: <span id="current-date-display" style="color: var(--primary-color);"></span></h4>
+            <table id="time-input-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>工号</th>
+                        <th>工种</th>
+                        <th>工时 (小时)</th>
+                    </tr>
+                </thead>
+                <tbody id="worker-list-body">
+                    </tbody>
+            </table>
+            <button class="button button-success" id="submit-time-btn" onclick="submitTimeRecords()" style="width: 100%; margin-top: 25px;">
+                💾 提交并保存当日工时 (自动覆盖旧记录)
+            </button>
+            <p id="submit-message" class="message"></p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>3️⃣ 报表导出 (月度总结)</h3>
+        <p>点击按钮导出包含当月所有工时数据的 Excel 报表。</p>
+        <button class="button button-primary" id="generate-report-btn" onclick="generateReport()">
+            📊 一键生成并下载本月报表
+        </button>
+        <p id="report-message" class="message"></p>
+    </div>
+</div>
+
+<div id="workerManagementModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeWorkerManagementModal()">&times;</span>
+        <h3>📚 员工档案管理列表</h3>
+        <p>点击 **编辑** 将信息加载到主页面的输入框进行修改。</p>
+        <div style="max-height: 60vh; overflow-y: auto; padding-right: 15px;">
+            <table id="worker-management-table">
+                <thead>
+                    <tr>
+                        <th>姓名 (工种)</th>
+                        <th>工号 ID</th>
+                        <th>公司名称</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="worker-management-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+    const STORAGE_KEY_LOGS = 'timesheetLogs_Manual';
+    const STORAGE_KEY_METADATA = 'employeeMetadata_Manual'; 
+    let timeLogs = [];
+    let employeeMetadata = {}; 
+
+    // --- 初始化和加载数据 ---
+    function init() {
+        timeLogs = JSON.parse(localStorage.getItem(STORAGE_KEY_LOGS) || '[]');
+        employeeMetadata = JSON.parse(localStorage.getItem(STORAGE_KEY_METADATA) || '{}');
+        
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('work-date').value = today;
+        updateWorkerCountBadge();
+    }
+
+    function updateWorkerCountBadge() {
+        // ID 保持不变，但内容更新为“员工”
+        document.getElementById('worker-count-badge').textContent = `${Object.keys(employeeMetadata).length} 人已建档`;
+    }
+
+    // --- 辅助函数：消息显示和按钮加载状态 ---
+    function showMessage(elementId, type, text) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        
+        el.className = `message ${type}`;
+        el.textContent = text;
+        void el.offsetWidth;
+        el.classList.add('show');
+        
+        setTimeout(() => {
+            el.classList.remove('show');
+        }, 5000); 
+    }
+    
+    function setButtonLoading(id, isLoading, originalText = null) {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        
+        if (isLoading) {
+            btn.setAttribute('data-original-text', btn.innerHTML);
+            btn.innerHTML = originalText || '处理中...';
+            btn.disabled = true;
+            btn.innerHTML += `<span class="spinner"></span>`;
+        } else {
+            const html = btn.getAttribute('data-original-text') || originalText || '';
+            btn.innerHTML = html;
+            btn.disabled = false;
+        }
+    }
+
+    // --- 1. 员工建档/更新 ---
+    function addWorkerMetadata() {
+        setButtonLoading('add-worker-btn', true, '正在保存...');
+        const id = document.getElementById('input-id').value.trim();
+        const name = document.getElementById('input-name').value.trim();
+        const company = document.getElementById('input-company').value.trim();
+        const job = document.getElementById('input-job').value.trim();
+        
+        if (!id || !name) {
+            showMessage('metadata-message', 'error', '⛔️ 错误：工号 (ID) 和姓名必须填写！');
+            setButtonLoading('add-worker-btn', false, '➕ 添加 / 更新员工信息');
+            return;
+        }
+        
+        setTimeout(() => { 
+            const newWorker = {
+                employee_id: id,
+                name: name,
+                company_name: company,
+                job_type: job,
+            };
+            
+            const isNew = !employeeMetadata[id];
+            employeeMetadata[id] = newWorker;
+            localStorage.setItem(STORAGE_KEY_METADATA, JSON.stringify(employeeMetadata));
+
+            // 中文提示更新
+            showMessage('metadata-message', 'success', `✅ 员工 **${name}** (ID: ${id}) 的信息已${isNew ? '添加' : '更新'}成功！`);
+            
+            // 清空表单
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-company').value = '';
+            document.getElementById('input-job').value = '';
+            document.getElementById('input-id').focus();
+            setButtonLoading('add-worker-btn', false, '➕ 添加 / 更新员工信息');
+            
+            updateWorkerCountBadge(); 
+            if (document.getElementById('workerManagementModal').style.display === 'block') {
+                renderWorkerManagementTable(); 
+            }
+
+        }, 300);
+    }
+    
+    // --- 1.1 员工管理模态框控制 ---
+    function openWorkerManagementModal() {
+        renderWorkerManagementTable();
+        document.getElementById('workerManagementModal').style.display = 'block';
+    }
+
+    function closeWorkerManagementModal() {
+        document.getElementById('workerManagementModal').style.display = 'none';
+    }
+
+    // 在窗口外部点击时关闭模态框
+    window.onclick = function(event) {
+        const modal = document.getElementById('workerManagementModal');
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // --- 1.2 员工管理列表渲染 ---
+    function renderWorkerManagementTable() {
+        const tableBody = document.getElementById('worker-management-body');
+        tableBody.innerHTML = '';
+        
+        const workersArray = Object.values(employeeMetadata).sort((a, b) => a.employee_id.localeCompare(b.employee_id));
+
+        if (workersArray.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #757575;">暂无已建档员工信息。</td></tr>';
+            return;
+        }
+
+        workersArray.forEach(worker => {
+            const row = tableBody.insertRow();
+            
+            row.innerHTML = `
+                <td>${worker.name} (${worker.job_type || '未定义'})</td>
+                <td>${worker.employee_id}</td>
+                <td>${worker.company_name || '未定义'}</td>
+                <td class="no-hover">
+                    <button class="button button-primary button-small" onclick="loadWorkerForEdit('${worker.employee_id}')">
+                        ✏️ 编辑
+                    </button>
+                    <button class="button button-danger button-small" style="margin-left: 5px;" onclick="confirmDeleteWorker('${worker.employee_id}', '${worker.name}')">
+                        🗑️ 删除
+                    </button>
+                </td>
+            `;
+        });
+    }
+
+    // --- 1.3 加载员工信息到输入框 (Edit) ---
+    window.loadWorkerForEdit = function(id) {
+        const worker = employeeMetadata[id];
+        if (!worker) {
+            showMessage('metadata-message', 'error', '⛔️ 错误：未找到该工号的档案。');
+            return;
+        }
+        
+        // 1. 填充到主页面表单
+        document.getElementById('input-id').value = worker.employee_id;
+        document.getElementById('input-name').value = worker.name;
+        document.getElementById('input-company').value = worker.company_name;
+        document.getElementById('input-job').value = worker.job_type;
+        document.getElementById('input-id').focus();
+        
+        // 2. 关闭模态框
+        closeWorkerManagementModal();
+
+        // 3. 给出提示并滚动到顶部
+        // 中文提示更新
+        showMessage('metadata-message', 'success', `✅ 已加载员工 **${worker.name}** 的信息到上方，请修改后点击“更新”。`);
+        window.scrollTo(0, 0); 
+    }
+
+    // --- 1.4 确认并删除员工信息 (已修复为全局函数) ---
+    window.confirmDeleteWorker = function(id, name) {
+        // 中文提示更新
+        if (confirm(`⚠️ 警告！您确定要永久删除员工【${name} (ID: ${id})】的档案吗？\n\n注意：删除档案并不会删除该员工已经录入的工时记录。`)) {
+            deleteWorker(id, name);
+        }
+    }
+    
+    function deleteWorker(id, name) {
+        if (employeeMetadata[id]) {
+            delete employeeMetadata[id];
+            localStorage.setItem(STORAGE_KEY_METADATA, JSON.stringify(employeeMetadata));
+            renderWorkerManagementTable();
+            updateWorkerCountBadge();
+            // 中文提示更新
+            showMessage('metadata-message', 'success', `🗑️ 成功删除员工 **${name}** 的档案。`);
+        } else {
+            showMessage('metadata-message', 'error', `⛔️ 错误：删除失败，未找到工号 ${id} 的档案。`);
+        }
+    }
+    // --- 员工管理模块结束 ---
+
+
+    // --- 2. 加载和录入工时 ---
+    function loadWorkersForInput() {
+        setButtonLoading('load-workers-btn', true, '正在加载...');
+        const date = document.getElementById('work-date').value;
+        
+        if (Object.keys(employeeMetadata).length === 0) {
+            // 中文提示更新
+            showMessage('submit-message', 'error', '⛔️ 错误：请先在第 1 节添加员工信息才能录入！');
+            setButtonLoading('load-workers-btn', false, '📋 加载所有已建档员工名单');
+            return;
+        }
+        if (!date) {
+            showMessage('submit-message', 'error', '⛔️ 错误：请选择录入日期！');
+            setButtonLoading('load-workers-btn', false, '📋 加载所有已建档员工名单');
+            return;
+        }
+        
+        setTimeout(() => { 
+            document.getElementById('current-date-display').textContent = date;
+            document.getElementById('input-area').style.display = 'block';
+
+            const workersArray = Object.values(employeeMetadata).sort((a, b) => a.employee_id.localeCompare(b.employee_id));
+            renderWorkerInputTable(workersArray, date);
+            
+            // 中文提示更新
+            showMessage('submit-message', 'success', `✅ 已加载 ${workersArray.length} 名员工名单，请填写 ${date} 的工时。`);
+            setButtonLoading('load-workers-btn', false, '📋 加载所有已建档员工名单');
+            
+        }, 500);
+    }
+
+    function renderWorkerInputTable(workers, date) {
+        const tableBody = document.getElementById('worker-list-body');
+        tableBody.innerHTML = '';
+        
+        const existingLogs = timeLogs.filter(log => log.work_date === date);
+        const logMap = new Map(existingLogs.map(log => [log.employee_id, log.hours_manual]));
+
+        workers.forEach(worker => {
+            const row = tableBody.insertRow();
+            const existingHours = logMap.get(worker.employee_id) || ''; 
+            
+            row.innerHTML = `
+                <td>${worker.name}</td>
+                <td>${worker.employee_id}</td>
+                <td>${worker.job_type}</td>
+                <td><input type="number" class="input-hours" min="0" max="24" step="0.5" value="${existingHours}" data-id="${worker.employee_id}" onfocus="this.select()"></td>
+            `;
+        });
+        
+        const firstInput = document.querySelector('#worker-list-body .input-hours');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }
+    
+    function submitTimeRecords() {
+        setButtonLoading('submit-time-btn', true, '正在保存...');
+        const date = document.getElementById('work-date').value;
+
+        const inputs = document.querySelectorAll('#worker-list-body .input-hours');
+        
+        if (inputs.length === 0) {
+             // 中文提示更新
+             showMessage('submit-message', 'error', '⛔️ 错误：请先加载员工名单。');
+            setButtonLoading('submit-time-btn', false, '💾 提交并保存当日工时 (自动覆盖旧记录)');
+            return;
+        }
+        
+        // 1. 过滤掉当天所有旧记录 (覆盖逻辑)
+        timeLogs = timeLogs.filter(log => log.work_date !== date);
+        
+        // 2. 插入新记录
+        const newLogs = [];
+        inputs.forEach(input => {
+            const employeeId = input.dataset.id;
+            const hours = parseFloat(input.value) || 0;
+            
+            if (hours > 0) {
+                newLogs.push({
+                    employee_id: employeeId,
+                    work_date: date,
+                    hours_manual: hours,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
+
+        setTimeout(() => { 
+            if (newLogs.length === 0) {
+                showMessage('submit-message', 'error', `⚠️ 注意：${date} 已保存成功，但没有有效工时记录 (>0 小时) 提交。`);
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(timeLogs)); 
+                setButtonLoading('submit-time-btn', false, '💾 提交并保存当日工时 (自动覆盖旧记录)');
+                return;
+            }
+
+            timeLogs.push(...newLogs);
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(timeLogs));
+
+            showMessage('submit-message', 'success', `🎉 成功！${date} 当天 ${newLogs.length} 条有效工时记录已保存并覆盖之前的记录！`);
+            setButtonLoading('submit-time-btn', false, '💾 提交并保存当日工时 (自动覆盖旧记录)');
+        }, 800);
+    }
+
+    // --- 3. 报表导出 ---
+    function generateReport() {
+        setButtonLoading('generate-report-btn', true, '正在生成...');
+        
+        if (typeof XLSX === 'undefined') {
+            alert("错误：Excel 处理库未加载。请尝试连接网络或使用 Chrome/Edge 浏览器打开此文件。");
+            setButtonLoading('generate-report-btn', false, '📊 一键生成并下载本月报表');
+            return;
+        }
+        
+        if (timeLogs.length === 0) {
+            showMessage('report-message', 'error', '⛔️ 错误：没有工时记录可以导出。');
+            setButtonLoading('generate-report-btn', false, '📊 一键生成并下载本月报表');
+            return;
+        }
+        
+        setTimeout(() => { 
+            const dataForReport = [];
+            const monthYear = new Date().toISOString().substring(0, 7); 
+            const today = new Date();
+            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            const allEmployeesIds = Object.keys(employeeMetadata);
+            const dailyHoursMap = {}; 
+            
+            allEmployeesIds.forEach(id => {
+                const meta = employeeMetadata[id];
+                if (meta) {
+                    dailyHoursMap[id] = { ...meta, employee_id: id, total_hours: 0, daily: {} };
+                }
+            });
+
+            timeLogs.forEach(log => {
+                const key = log.employee_id;
+                if (log.work_date.startsWith(monthYear) && dailyHoursMap[key]) {
+                    const hours = log.hours_manual;
+                    dailyHoursMap[key].daily[log.work_date] = hours; 
+                    dailyHoursMap[key].total_hours += hours;
+                }
+            });
+
+            const headers = ['工号/ID', '姓名/Name', '公司/Company', '工种/Job'];
+            for (let day = 1; day <= daysInMonth; day++) {
+                headers.push(day.toString());
+            }
+            headers.push('月总工时 (Hrs)');
+            dataForReport.push(headers);
+
+            Object.values(dailyHoursMap)
+                .filter(item => item.total_hours > 0) 
+                .sort((a, b) => a.employee_id.localeCompare(b.employee_id))
+                .forEach(item => {
+
+                const row = [
+                    item.employee_id,
+                    item.name,
+                    item.company_name,
+                    item.job_type,
+                ];
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayString = day.toString().padStart(2, '0');
+                    const fullDate = `${monthYear}-${dayString}`;
+                    const hours = item.daily[fullDate] || 0;
+                    row.push(hours > 0 ? hours : ''); 
+                }
+                
+                row.push(item.total_hours.toFixed(1));
+                dataForReport.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(dataForReport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Timesheet_Detail");
+            
+            const filename = `Timesheet_Report_${monthYear}.xlsx`;
+            XLSX.writeFile(wb, filename);
+
+            showMessage('report-message', 'success', `🎉 报表生成成功！文件 **${filename}** 已下载。`);
+            setButtonLoading('generate-report-btn', false, '📊 一键生成并下载本月报表');
+
+        }, 1000);
+    }
+    
+    // 启动应用
+    init();
+</script>
+</body>
+</html>
