@@ -22,6 +22,7 @@
 
 您可以点击以下链接直接使用在线部署版本：
 
-`[您的 GitHub Pages 链接] (例如: https://your-username.github.io/Timesheet-System/)`
+`https://tonggg666.github.io/Timesheet-System/`
+
 
 ---
